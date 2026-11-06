@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Prediction History - Malaria Outbreak Prediction System{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: #0f172a;">Prediction Audit &amp; History Log</h3>
+    <p class="text-muted mb-0 small">Archived log of machine learning forecasts and risk categorizations stored in SQLite database.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('history.export_csv') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+      <i class="bi bi-file-earmark-spreadsheet-fill"></i> Export CSV
+    </a>
+    <a href="{{ url_for('predictions.predict') }}" class="btn btn-teal btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-plus-circle"></i> New Forecast
+    </a>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm mb-4 rounded-3">
+  <div class="card-body p-3">
+    <form method="GET" action="{{ url_for('history.index') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-4">
+        <select class="form-select form-select-sm" name="state">
+          <option value="">All States (Kwara, Nasarawa, Zamfara)</option>
+          {% for s in available_states %}
+            <option value="{{ s }}" {% if state_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <select class="form-select form-select-sm" name="risk">
+          <option value="">All Risk Categories</option>
+          <option value="LOW RISK" {% if risk_filter == 'LOW RISK' %}selected{% endif %}>LOW RISK</option>
+          <option value="MODERATE RISK" {% if risk_filter == 'MODERATE RISK' %}selected{% endif %}>MODERATE RISK</option>
+          <option value="HIGH RISK" {% if risk_filter == 'HIGH RISK' %}selected{% endif %}>HIGH RISK</option>
+        </select>
+      </div>
+
+      <div class="col-12 col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-teal w-100">Filter History</button>
+        <a href="{{ url_for('history.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- History Table -->
+<div class="card border-0 shadow-sm rounded-3">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h6 class="fw-bold mb-0">Saved Forecast Records ({{ "{:,}".format(total_predictions) }} total)</h6>
+    <span class="text-muted small">Page {{ page }} of {{ total_pages }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="custom-table table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>State</th>
+          <th>Target Forecast Period</th>
+          <th>Predicted Malaria Cases</th>
+          <th>Statistical Risk Category</th>
+          <th>ML Algorithm</th>
+          <th>Generated At</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if predictions %}
+          {% for p in predictions %}
+            <tr>
+              <td class="text-muted small">#{{ p.id }}</td>
+              <td><strong>{{ p.state }}</strong></td>
+              <td><code>{{ p.prediction_year }}-{{ "%02d"|format(p.prediction_month) }}</code></td>
+              <td><span class="fw-bold fs-6">{{ "{:,.0f}".format(p.predicted_cases) }}</span></td>
+              <td>
+                {% if p.risk_level == 'LOW RISK' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <i class="bi bi-shield-check me-1"></i> LOW RISK
+                  </span>
+                {% elif p.risk_level == 'MODERATE RISK' %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
+                    <i class="bi bi-shield-exclamation me-1"></i> MODERATE RISK
+                  </span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                    <i class="bi bi-shield-slash-fill me-1"></i> HIGH RISK
+                  </span>
+                {% endif %}
+              </td>
+              <td><span class="badge bg-light text-dark border">{{ p.model_name }}</span></td>
+              <td class="text-muted small">{{ p.generated_at.strftime('%Y-%m-%d %H:%M:%S') if p.generated_at else 'N/A' }}</td>
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('history.delete', pred_id=p.id) }}" onsubmit="return confirm('Are you sure you want to delete this prediction record?');" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Delete record">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+              No prediction records found.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+    <small class="text-muted">Showing page {{ page }} of {{ total_pages }}</small>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('history.index', page=page-1, state=state_filter, risk=risk_filter) }}">Previous</a>
+      </li>
+      {% for p in range(1, total_pages + 1) %}
+        {% if p >= page - 2 and p <= page + 2 %}
+          <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('history.index', page=p, state=state_filter, risk=risk_filter) }}">{{ p }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('history.index', page=page+1, state=state_filter, risk=risk_filter) }}">Next</a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

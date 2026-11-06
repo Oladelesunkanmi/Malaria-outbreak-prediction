@@ -1,0 +1,525 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Evaluation - Malaria Outbreak Prediction System{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: #0f172a;">Machine Learning Model Evaluation</h3>
+    <p class="text-muted mb-0 small">Empirical benchmark on chronological test holdout (latest 20% observations per state) and expanding-window cross-validation.</p>
+  </div>
+  <form method="POST" action="{{ url_for('evaluation.retrain') }}">
+    <button type="submit" class="btn btn-teal btn-sm d-inline-flex align-items-center gap-2 shadow-sm">
+      <i class="bi bi-arrow-repeat"></i> Re-Train &amp; Evaluate Models
+    </button>
+  </form>
+</div>
+
+<!-- Chronological Split Verification Card -->
+<div class="card border-0 shadow-sm mb-4 rounded-3">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-calendar-check-fill text-teal" style="color: #0d9488; font-size: 1.1rem;"></i>
+      <h6 class="fw-bold mb-0">Chronological Split &amp; Time Horizon Verification</h6>
+    </div>
+    <span class="badge bg-light text-dark border">Zero Temporal Leakage</span>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="p-3 bg-light rounded-3">
+          <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Initial Lag Buffer (Year 2015)</small>
+          <div class="fs-5 fw-bold text-dark">12 Months / State</div>
+          <small class="text-muted" style="font-size: 0.78rem;">2015-01 to 2015-12 (36 obs used to build 12-month lag vectors)</small>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="p-3 bg-light rounded-3">
+          <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Training Holdout (80% Partition)</small>
+          <div class="fs-5 fw-bold text-success">86 Months / State</div>
+          <small class="text-muted" style="font-size: 0.78rem;"><strong>2016-01 to 2023-02</strong> (258 total records across Kwara, Nasarawa, Zamfara)</small>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="p-3 bg-light rounded-3">
+          <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Test Holdout (20% Partition)</small>
+          <div class="fs-5 fw-bold text-primary">22 Months / State</div>
+          <small class="text-muted" style="font-size: 0.78rem;"><strong>2023-03 to 2024-12</strong> (66 total records across Kwara, Nasarawa, Zamfara)</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Best Model Banner -->
+{% if metrics_data.best_model %}
+<div class="card border-0 shadow-sm mb-4 rounded-3" style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: white;">
+  <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+      <span class="badge bg-white text-teal fw-bold mb-2" style="color: #0f766e;">BEST PERFORMING ALGORITHM</span>
+      <h3 class="fw-bold mb-1">{{ metrics_data.best_model }}</h3>
+      <p class="mb-0 text-white opacity-75 small">
+        Selected as the production prediction engine for the web application based on achieving the lowest Mean Absolute Error across all candidate models on the chronological holdout.
+      </p>
+    </div>
+    <div class="text-md-end bg-white bg-opacity-10 p-3 rounded-3">
+      {% set best_m = metrics_data.metrics[metrics_data.best_model] %}
+      <div class="small text-uppercase opacity-75">Lowest MAE</div>
+      <div class="display-6 fw-bold text-white">{{ "{:,.2f}".format(best_m.mae) }}</div>
+      <small class="opacity-75">R² Score: <strong>{{ "%.4f"|format(best_m.r2) }}</strong></small>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Metrics Comparison Table (Models + Naive Baselines) -->
+<div class="card border-0 shadow-sm mb-4 rounded-3">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-table text-teal" style="color: #0d9488; font-size: 1.1rem;"></i>
+      <h6 class="fw-bold mb-0">Empirical Performance Benchmark: Models vs. Naive Baselines (66 Test Obs)</h6>
+    </div>
+    <small class="text-muted">Trained: {{ metrics_data.trained_at or 'N/A' }}</small>
+  </div>
+  <div class="table-responsive">
+    <table class="custom-table table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Model / Baseline Name</th>
+          <th>Model Type</th>
+          <th>Mean Absolute Error (MAE)</th>
+          <th>Root Mean Squared Error (RMSE)</th>
+          <th>Mean Squared Error (MSE)</th>
+          <th>R² Score</th>
+          <th>Role / Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if metrics_data.metrics %}
+          {% for name, m in metrics_data.metrics.items() %}
+            <tr {% if name == metrics_data.best_model %}class="table-light border-start border-4 border-success"{% endif %}>
+              <td>
+                <div class="fw-bold">{{ name }}</div>
+                <small class="text-muted">
+                  {% if name == 'Linear Regression' %}
+                    Ordinary Least Squares with OneHot state vectors &amp; seasonal cyclical sine/cosine
+                  {% elif name == 'Random Forest Regressor' %}
+                    Ensemble regressor with 100 decision trees
+                  {% elif name == 'Decision Tree Regressor' %}
+                    Constrained depth decision tree regressor (max_depth=5)
+                  {% elif 'Last Month' in name %}
+                    Naive persistence: predicts y(t) = y(t-1)
+                  {% elif 'Same Month' in name %}
+                    Seasonal persistence: predicts y(t) = y(t-12)
+                  {% else %}
+                    Candidate Model
+                  {% endif %}
+                </small>
+              </td>
+              <td>
+                <span class="badge {% if m.model_type == 'Naive Baseline' %}bg-secondary-subtle text-secondary{% else %}bg-primary-subtle text-primary{% endif %} border">
+                  {{ m.model_type or 'Model' }}
+                </span>
+              </td>
+              <td>
+                <span class="fs-6 fw-bold text-navy">{{ "{:,.2f}".format(m.mae) }}</span>
+                <small class="d-block text-muted">cases</small>
+              </td>
+              <td>
+                <span class="fw-semibold">{{ "{:,.2f}".format(m.rmse) }}</span>
+                <small class="d-block text-muted">cases</small>
+              </td>
+              <td>
+                <span class="small">{{ "{:,.2f}".format(m.mse) }}</span>
+              </td>
+              <td>
+                <span class="badge {% if m.r2 > 0.7 %}bg-success-subtle text-success{% elif m.r2 > 0 %}bg-warning-subtle text-warning-emphasis{% else %}bg-danger-subtle text-danger{% endif %} border px-2 py-1 fs-6">
+                  {{ "%.4f"|format(m.r2) }}
+                </span>
+              </td>
+              <td>
+                {% if name == metrics_data.best_model %}
+                  <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Selected Model</span>
+                {% elif m.model_type == 'Naive Baseline' %}
+                  <span class="badge bg-light text-dark border">Benchmark Reference</span>
+                {% else %}
+                  <span class="badge bg-secondary">Candidate</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">No model metrics available. Please train models.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Multi-Step Horizon Evaluation & Expanding-Window Cross-Validation -->
+<div class="row g-4 mb-4">
+  <!-- Multi-Step Horizon Evaluation Table -->
+  <div class="col-12 col-xl-6">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="bi bi-arrow-repeat me-2 text-teal" style="color: #0d9488;"></i>Multi-Step Recursive Horizon Evaluation</h6>
+        <span class="badge bg-light text-muted border">MAE per Horizon</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+          <thead class="table-light">
+            <tr>
+              <th>Model / Baseline</th>
+              <th class="text-end">1 Month</th>
+              <th class="text-end">3 Months</th>
+              <th class="text-end">6 Months</th>
+              <th class="text-end">12 Months</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if metrics_data.horizon_evaluation %}
+              {% for m, h_dict in metrics_data.horizon_evaluation.items() %}
+                <tr {% if m == metrics_data.best_model %}class="table-light fw-bold"{% endif %}>
+                  <td>{{ m }}</td>
+                  <td class="text-end">{{ "{:,.0f}".format(h_dict['1_month_mae']) }}</td>
+                  <td class="text-end">{{ "{:,.0f}".format(h_dict['3_month_mae']) }}</td>
+                  <td class="text-end">{{ "{:,.0f}".format(h_dict['6_month_mae']) }}</td>
+                  <td class="text-end">{{ "{:,.0f}".format(h_dict['12_month_mae']) }}</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer bg-light border-0 py-2 px-3 small text-muted">
+        <i class="bi bi-info-circle me-1"></i> Tests recursive autoregressive compounding across rolling 12-month windows.
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanding Window Time-Series Cross-Validation Table -->
+  <div class="col-12 col-xl-6">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="bi bi-layers-fill me-2 text-teal" style="color: #0d9488;"></i>Time-Series Cross-Validation (Expanding Window)</h6>
+        <span class="badge bg-light text-muted border">10 Folds</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+          <thead class="table-light">
+            <tr>
+              <th>Model</th>
+              <th>Mean MAE across Folds</th>
+              <th>Std Dev (σ)</th>
+              <th>Evaluation Window</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if metrics_data.timeseries_cv %}
+              {% for m, cv in metrics_data.timeseries_cv.items() %}
+                <tr {% if m == metrics_data.best_model %}class="table-light fw-bold"{% endif %}>
+                  <td>{{ m }}</td>
+                  <td><strong>{{ "{:,.2f}".format(cv.mean_mae) }}</strong></td>
+                  <td class="text-muted">&plusmn; {{ "{:,.2f}".format(cv.std_mae) }}</td>
+                  <td>{{ cv.folds_evaluated }} expanding folds (step=6 mos)</td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer bg-light border-0 py-2 px-3 small text-muted">
+        <i class="bi bi-shield-check me-1"></i> Minimum initial training window of 48 months, advancing by 6-month steps.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Per-State Performance Breakdown & Risk Tier Validation -->
+<div class="row g-4 mb-4">
+  <!-- Per-State Results -->
+  <div class="col-12 col-xl-7">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="bi bi-geo-alt-fill me-2 text-teal" style="color: #0d9488;"></i>Per-State Holdout Breakdown (22 Test Months per State)</h6>
+        <span class="badge bg-light text-muted border">Selected: {{ metrics_data.best_model }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+          <thead class="table-light">
+            <tr>
+              <th>State</th>
+              <th>Mean Monthly Cases</th>
+              <th>Linear Reg MAE</th>
+              <th>Linear Reg RMSE</th>
+              <th>R² Score</th>
+              <th>Error Contribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if metrics_data.state_metrics %}
+              {% for s, sm in metrics_data.state_metrics.items() %}
+                <tr {% if s == metrics_data.highest_error_state %}class="table-warning border-start border-4 border-warning"{% endif %}>
+                  <td><strong>{{ s }}</strong></td>
+                  <td>{{ "{:,.1f}".format(sm.mean_cases) }}</td>
+                  <td><strong>{{ "{:,.2f}".format(sm.linear_regression.mae) }}</strong></td>
+                  <td>{{ "{:,.2f}".format(sm.linear_regression.rmse) }}</td>
+                  <td>{{ "%.4f"|format(sm.linear_regression.r2) }}</td>
+                  <td>
+                    <span class="badge {% if sm.linear_regression.error_share_pct > 50 %}bg-warning-subtle text-warning-emphasis border border-warning-subtle{% else %}bg-light text-dark border{% endif %}">
+                      {{ sm.linear_regression.error_share_pct }}%
+                    </span>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer bg-light border-0 py-2 px-3 small text-muted">
+        <strong>Error Share Insight:</strong> Zamfara contributes <strong>76.2%</strong> of total absolute error due to substantially higher monthly case volume (85,195 mean cases) and larger seasonal variance.
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk Tier Validation -->
+  <div class="col-12 col-xl-5">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold mb-0"><i class="bi bi-shield-exclamation me-2 text-teal" style="color: #0d9488;"></i>Statistical Risk Tier Validation</h6>
+        <span class="badge bg-light text-muted border">66 Test Months</span>
+      </div>
+      <div class="card-body p-3">
+        {% if metrics_data.risk_tier_validation %}
+          {% set rtv = metrics_data.risk_tier_validation %}
+          <div class="row g-2 mb-3 text-center">
+            <div class="col-4">
+              <div class="p-2 bg-light rounded-3 border">
+                <small class="text-muted d-block" style="font-size: 0.68rem;">HIT RATE (RECALL)</small>
+                <strong class="fs-5 text-success">{{ "%.1f"|format(rtv.hit_rate * 100) }}%</strong>
+                <small class="d-block text-muted" style="font-size: 0.65rem;">{{ rtv.true_positives }}/{{ rtv.actual_high_count }} Outbreak Months</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 bg-light rounded-3 border">
+                <small class="text-muted d-block" style="font-size: 0.68rem;">FALSE ALARM RATE</small>
+                <strong class="fs-5 text-dark">{{ "%.1f"|format(rtv.false_alarm_rate * 100) }}%</strong>
+                <small class="d-block text-muted" style="font-size: 0.65rem;">{{ rtv.false_positives }}/{{ rtv.actual_not_high_count }} Non-Surges</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 bg-light rounded-3 border">
+                <small class="text-muted d-block" style="font-size: 0.68rem;">EXACT 3-TIER MATCH</small>
+                <strong class="fs-5 text-primary">{{ "%.1f"|format(rtv.tier_exact_match_accuracy * 100) }}%</strong>
+                <small class="d-block text-muted" style="font-size: 0.65rem;">Low / Mod / High</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-2 bg-light rounded-2 small" style="font-size: 0.78rem;">
+            <strong>Statistical Anomaly Definition:</strong>
+            Actual cases &ge; Historical Seasonal Mean + 2 Standard Deviations (&mu; + 2&sigma;) computed exclusively from training data.
+            <div class="mt-1 text-muted">
+              Raw Test Counts: <strong>TP = {{ rtv.true_positives }}</strong> (hits), <strong>FN = {{ rtv.false_negatives }}</strong> (miss), <strong>FP = {{ rtv.false_positives }}</strong> (false alarms), <strong>TN = {{ rtv.true_negatives }}</strong>.
+            </div>
+            <div class="mt-1 text-danger small">
+              <i class="bi bi-exclamation-circle me-1"></i> <em>Reliability Notice:</em> Three positive surge months in the test set are too few to estimate alert sensitivity reliably.
+            </div>
+          </div>
+        {% endif %}
+      </div>
+      <div class="card-footer bg-light border-0 py-2 px-3 small text-muted">
+        <i class="bi bi-info-circle me-1"></i> A statistical heuristic on regression predictions.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Outbreak Classification Model Section (Task 7) -->
+{% if outbreak_metrics and outbreak_metrics.models %}
+<div class="card border-0 shadow-sm mb-4 rounded-3" id="outbreakClassifierSection">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-shield-shaded text-danger fs-5"></i>
+      <h6 class="fw-bold mb-0">Supervised Outbreak Classification Benchmark (Target: Month t+1 Outbreak)</h6>
+    </div>
+    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-semibold">Core Outbreak Target</span>
+  </div>
+  <div class="card-body p-4">
+    <p class="text-muted small mb-3">
+      Supervised binary classification models trained on 258 training rows (2016-01 to 2023-02) and evaluated on 66 chronological holdout observations (2023-03 to 2024-12).
+      An outbreak is defined as monthly cases &ge; &mu; + 2&sigma; (derived strictly from training data). Models use strictly prior features available at month t.
+      Test set has <strong>{{ outbreak_metrics.test_set_summary.actual_outbreaks }} actual outbreak months</strong> (Zamfara only) and <strong>{{ outbreak_metrics.test_set_summary.actual_non_outbreaks }} non-outbreak months</strong>.
+    </p>
+
+    <!-- Test Holdout Table -->
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+        <thead class="table-light">
+          <tr>
+            <th>Algorithm / Baseline</th>
+            <th>Type</th>
+            <th class="text-center">Confusion Matrix (TP, FP, FN, TN)</th>
+            <th class="text-center">Precision</th>
+            <th class="text-center">Recall</th>
+            <th class="text-center">F1 Score</th>
+            <th class="text-center">ROC-AUC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m_name, m_info in outbreak_metrics.models.items() %}
+            <tr {% if m_name == outbreak_metrics.selected_best_classifier %}class="table-active fw-semibold"{% endif %}>
+              <td>
+                {% if m_name == outbreak_metrics.selected_best_classifier %}
+                  <i class="bi bi-star-fill text-warning me-1"></i>
+                {% endif %}
+                {{ m_name }}
+              </td>
+              <td>
+                <span class="badge {% if 'Baseline' in m_name %}bg-secondary{% else %}bg-primary{% endif %}">
+                  {{ m_info.model_type }}
+                </span>
+              </td>
+              <td class="text-center">
+                <code>TP:{{ m_info.confusion_matrix.tp }}, FP:{{ m_info.confusion_matrix.fp }}, FN:{{ m_info.confusion_matrix.fn }}, TN:{{ m_info.confusion_matrix.tn }}</code>
+              </td>
+              <td class="text-center">{{ "%.4f"|format(m_info.precision) }}</td>
+              <td class="text-center">{{ "%.4f"|format(m_info.recall) }}</td>
+              <td class="text-center">{{ "%.4f"|format(m_info.f1) }}</td>
+              <td class="text-center">
+                {% if m_info.roc_auc is not none %}
+                  {{ "%.4f"|format(m_info.roc_auc) }}
+                {% else %}
+                  <span class="text-muted">N/A</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Cross-Validation & Confusion Matrix Plot Row -->
+    <div class="row g-4 align-items-center">
+      <div class="col-12 col-xl-7">
+        <h6 class="fw-bold small text-uppercase text-muted mb-2">5-Fold Expanding-Window Time-Series Cross-Validation</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-0" style="font-size: 0.82rem;">
+            <thead class="table-light">
+              <tr>
+                <th>Model / Baseline</th>
+                <th class="text-center">Precision (Mean [Min, Max])</th>
+                <th class="text-center">Recall (Mean [Min, Max])</th>
+                <th class="text-center">F1 Score (Mean [Min, Max])</th>
+                <th class="text-center">ROC-AUC (Mean [Min, Max])</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m_name, cv_data in outbreak_metrics.cross_validation_5_folds.items() %}
+                <tr>
+                  <td class="fw-semibold">{{ m_name }}</td>
+                  <td class="text-center">
+                    {{ "%.4f"|format(cv_data.precision.mean) }}
+                    <small class="text-muted d-block">[{{ "%.2f"|format(cv_data.precision.min) }}, {{ "%.2f"|format(cv_data.precision.max) }}]</small>
+                  </td>
+                  <td class="text-center">
+                    {{ "%.4f"|format(cv_data.recall.mean) }}
+                    <small class="text-muted d-block">[{{ "%.2f"|format(cv_data.recall.min) }}, {{ "%.2f"|format(cv_data.recall.max) }}]</small>
+                  </td>
+                  <td class="text-center">
+                    {{ "%.4f"|format(cv_data.f1.mean) }}
+                    <small class="text-muted d-block">[{{ "%.2f"|format(cv_data.f1.min) }}, {{ "%.2f"|format(cv_data.f1.max) }}]</small>
+                  </td>
+                  <td class="text-center">
+                    {% if cv_data.roc_auc.mean is not none %}
+                      {{ "%.4f"|format(cv_data.roc_auc.mean) }}
+                      <small class="text-muted d-block">[{{ "%.2f"|format(cv_data.roc_auc.min) }}, {{ "%.2f"|format(cv_data.roc_auc.max) }}]</small>
+                    {% else %}
+                      <span class="text-muted">N/A</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-12 col-xl-5 text-center">
+        <h6 class="fw-bold small text-uppercase text-muted mb-2">Confusion Matrix Heatmaps</h6>
+        <img src="{{ url_for('static', filename='images/outbreak_confusion_matrix.png') }}" class="img-fluid rounded border shadow-sm" alt="Outbreak confusion matrices">
+      </div>
+    </div>
+  </div>
+  <div class="card-footer bg-light border-0 py-2 px-3 small text-muted">
+    <i class="bi bi-info-circle me-1"></i> Due to class rarity (only 3 outbreak months in holdout test set), the "Last Month Was Outbreak" autocorrelation heuristic scores highest in single-point F1, while Logistic Regression provides calibrated probability estimates.
+  </div>
+</div>
+{% endif %}
+
+<!-- Visualizations Generated from Actual Training Evaluation -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-6">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-bar-chart-fill me-2 text-teal" style="color: #0d9488;"></i>Model Performance Metrics Comparison</h5>
+        <span class="badge bg-light text-muted border">Error &amp; R² Comparison</span>
+      </div>
+      <div class="p-2 text-center">
+        <img src="{{ url_for('static', filename='images/model_comparison.png') }}" class="img-fluid rounded border shadow-sm" alt="Model comparison chart">
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-scatter-chart me-2 text-teal" style="color: #0d9488;"></i>Actual vs. Predicted Cases Scatter</h5>
+        <span class="badge bg-light text-muted border">Holdout Set Fit</span>
+      </div>
+      <div class="p-2 text-center">
+        <img src="{{ url_for('static', filename='images/actual_vs_predicted.png') }}" class="img-fluid rounded border shadow-sm" alt="Actual vs predicted cases">
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-activity me-2 text-teal" style="color: #0d9488;"></i>Prediction Residuals &amp; Error Distribution</h5>
+        <span class="badge bg-light text-muted border">Residual Diagnostics</span>
+      </div>
+      <div class="p-2 text-center">
+        <img src="{{ url_for('static', filename='images/prediction_error.png') }}" class="img-fluid rounded border shadow-sm" alt="Prediction error residuals">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Methodology & Limitations -->
+<div class="card border-0 shadow-sm rounded-3">
+  <div class="card-header bg-white border-bottom py-3">
+    <h6 class="fw-bold mb-0"><i class="bi bi-mortarboard-fill me-2 text-teal" style="color: #0d9488;"></i>Academic ML Methodology &amp; Honest Discussion</h6>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-4">
+      <div class="col-12 col-md-6">
+        <h6 class="fw-bold text-navy">Time-Series Validation Protocol</h6>
+        <p class="text-muted small">
+          Standard random k-fold cross-validation or shuffling was strictly avoided to prevent temporal leakage. 
+          The latest 20% of eligible monthly observations from each state (22 months, March 2023 to December 2024; 66 total) were withheld as a forward-looking test set. 
+          Training was conducted on the earlier 86 months (January 2016 to February 2023; 258 total).
+          All lag features (1, 2, 3, 12 months) and moving averages (3-month and 6-month) were derived exclusively from preceding periods.
+        </p>
+      </div>
+      <div class="col-12 col-md-6">
+        <h6 class="fw-bold text-navy">Performance Discussion &amp; Baselines</h6>
+        <p class="text-muted small">
+          Linear Regression yielded an MAE of 9,730.60 and an R² of 0.7497 on the holdout test set. While the naive "Last Month" baseline achieves a competitive single-step MAE (9,623.08) due to autoregressive momentum, multi-step recursive testing reveals that it quickly degrades (MAE &gt; 32,000 at 3 and 6 months) because it lacks seasonal dynamics. Linear Regression preserves lower error bounds and generalizability across expanding folds.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

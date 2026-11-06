@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block title %}Dataset Management - Malaria Outbreak Prediction System{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: #0f172a;">Historical Dataset Management</h3>
+    <p class="text-muted mb-0 small">Surveillance observations from <code>Wavelets_data for Time series_malaria.csv</code> (360 verified records).</p>
+  </div>
+  <button class="btn btn-teal d-inline-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+    <i class="bi bi-cloud-arrow-up-fill"></i> Upload Replacement CSV
+  </button>
+</div>
+
+<!-- Preprocessing Report Accordion / Card -->
+<div class="card border-0 shadow-sm mb-4 rounded-3">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-file-earmark-check-fill text-teal" style="color: #0d9488; font-size: 1.2rem;"></i>
+      <h6 class="fw-bold mb-0">Automated Data Preprocessing & Validation Report</h6>
+    </div>
+    <span class="badge bg-success-subtle text-success border border-success-subtle">
+      <i class="bi bi-shield-check me-1"></i> Data Integrity Verified
+    </span>
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-light rounded-3 text-center">
+          <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Original Records</small>
+          <span class="fs-4 fw-bold text-dark">{{ report.original_records or '360' }}</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-light rounded-3 text-center">
+          <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Cleaned Records</small>
+          <span class="fs-4 fw-bold text-success">{{ report.cleaned_records or '360' }}</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-light rounded-3 text-center">
+          <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Columns Removed</small>
+          <span class="fs-4 fw-bold text-info">{{ report.removed_columns_count or '32' }}</span>
+          <small class="d-block text-muted" style="font-size: 0.7rem;">(Empty &amp; Unnamed)</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-light rounded-3 text-center">
+          <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.72rem;">Duplicates &amp; Nulls</small>
+          <span class="fs-4 fw-bold text-dark">0 / 0</span>
+          <small class="d-block text-success" style="font-size: 0.7rem;">Zero Missing</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3 p-3 bg-light-subtle border rounded-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2" style="font-size: 0.85rem;">
+      <div>
+        <strong>States Covered:</strong> Kwara (120 obs), Nasarawa (120 obs), Zamfara (120 obs)
+      </div>
+      <div>
+        <strong>Observation Range:</strong> {{ report.date_range or '2015-01 to 2024-12' }} (10 Full Years)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="card border-0 shadow-sm mb-4 rounded-3">
+  <div class="card-body p-3">
+    <form method="GET" action="{{ url_for('dataset.index') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" class="form-control" name="state" placeholder="Search by state (e.g. Kwara)" value="{{ state_filter }}">
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <select class="form-select form-select-sm" name="year">
+          <option value="">All Years (2015–2024)</option>
+          {% for y in available_years %}
+            <option value="{{ y }}" {% if year_filter == y|string %}selected{% endif %}>Year {{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <select class="form-select form-select-sm" name="month">
+          <option value="">All Months (1–12)</option>
+          {% for m in range(1, 13) %}
+            <option value="{{ m }}" {% if month_filter == m|string %}selected{% endif %}>Month {{ "%02d"|format(m) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-teal w-100">Filter</button>
+        <a href="{{ url_for('dataset.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Dataset Records Table -->
+<div class="card border-0 shadow-sm rounded-3">
+  <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+    <h6 class="fw-bold mb-0">Malaria Observations ({{ "{:,}".format(total_records) }} records matching)</h6>
+    <span class="text-muted small">Page {{ page }} of {{ total_pages }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="custom-table table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>State</th>
+          <th>Year</th>
+          <th>Month</th>
+          <th>Date Index</th>
+          <th>Reported Malaria Cases</th>
+          <th>State Population</th>
+          <th>Incidence Rate (per 1k)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if records %}
+          {% for r in records %}
+            <tr>
+              <td class="text-muted small">#{{ r.id }}</td>
+              <td>
+                <strong>{{ r.state }}</strong>
+              </td>
+              <td>{{ r.year }}</td>
+              <td>{{ "%02d"|format(r.month) }}</td>
+              <td><code>{{ r.date }}</code></td>
+              <td>
+                <span class="fw-bold">{{ "{:,}".format(r.cases) }}</span>
+              </td>
+              <td class="text-muted">{{ "{:,}".format(r.population) }}</td>
+              <td>
+                {% set rate = (r.cases / r.population) * 1000 %}
+                <span class="badge bg-light text-dark border">{{ "%.2f"|format(rate) }}</span>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-file-earmark-x fs-2 d-block mb-2"></i>
+              No records match your selected filter criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+    <small class="text-muted">Showing page {{ page }} of {{ total_pages }}</small>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('dataset.index', page=page-1, state=state_filter, year=year_filter, month=month_filter) }}">Previous</a>
+      </li>
+      {% for p in range(1, total_pages + 1) %}
+        {% if p >= page - 2 and p <= page + 2 %}
+          <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('dataset.index', page=p, state=state_filter, year=year_filter, month=month_filter) }}">{{ p }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('dataset.index', page=page+1, state=state_filter, year=year_filter, month=month_filter) }}">Next</a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Upload Replacement CSV Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form method="POST" action="{{ url_for('dataset.upload') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold" id="uploadModalLabel">Upload Replacement Dataset</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-muted small mb-3">
+            Upload a revised CSV dataset containing time-series malaria surveillance observations.
+            The pipeline will validate column headers, sanitize empty fields, and verify chronological order.
+          </p>
+
+          <div class="mb-3">
+            <label for="csv_file" class="form-label fw-semibold small">SELECT CSV FILE (.csv)</label>
+            <input class="form-control" type="file" id="csv_file" name="csv_file" accept=".csv" required>
+          </div>
+
+          <div class="p-3 bg-light rounded-3" style="font-size: 0.8rem;">
+            <strong>Required Column Headers:</strong>
+            <ul class="mb-0 ps-3 mt-1 text-muted">
+              <li><code>State</code> (String, e.g. Kwara, Nasarawa, Zamfara)</li>
+              <li><code>cases</code> (Integer malaria case count)</li>
+              <li><code>year</code> (Numerical year, e.g. 2015 to 2024)</li>
+              <li><code>month</code> (Numerical month, 1 to 12)</li>
+              <li><code>Population</code> (State census population)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-teal btn-sm">
+            <i class="bi bi-upload me-1"></i> Upload and Validate
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

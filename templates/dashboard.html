@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Surveillance Dashboard - Malaria Outbreak Prediction System{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: #0f172a;">Malaria Epidemiological Dashboard</h3>
+    <p class="text-muted mb-0 small">Surveillance summary across Kwara, Nasarawa, and Zamfara (2015–2024 historical baseline & AI forecasts).</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('predictions.predict') }}" class="btn btn-teal d-inline-flex align-items-center gap-2 shadow-sm">
+      <i class="bi bi-cpu-fill"></i> Run Next-Month Prediction
+    </a>
+    <a href="{{ url_for('dataset.index') }}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+      <i class="bi bi-database"></i> View Dataset
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Total Historical Cases</div>
+          <div class="stat-value">{{ "{:,}".format(summary.total_cases) }}</div>
+          <small class="text-muted"><i class="bi bi-clock-history me-1"></i>2015 – 2024 Records</small>
+        </div>
+        <div class="stat-icon-wrapper bg-primary-subtle text-primary">
+          <i class="bi bi-virus"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Sentinel States</div>
+          <div class="stat-value">{{ summary.total_states }}</div>
+          <small class="text-teal" style="color: #0d9488;"><i class="bi bi-geo-alt-fill me-1"></i>Kwara, Nasarawa, Zamfara</small>
+        </div>
+        <div class="stat-icon-wrapper bg-success-subtle text-success">
+          <i class="bi bi-map-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Monthly Observations</div>
+          <div class="stat-value">{{ summary.total_observations }}</div>
+          <small class="text-muted">Latest: <strong>{{ summary.latest_reporting_month }}</strong></small>
+        </div>
+        <div class="stat-icon-wrapper bg-info-subtle text-info">
+          <i class="bi bi-calendar3"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-label">Active ML Model</div>
+          <div class="stat-value fs-5 text-truncate" title="{{ summary.selected_model }}">{{ summary.selected_model }}</div>
+          <small class="text-success"><i class="bi bi-award-fill me-1"></i>Optimized on MAE</small>
+        </div>
+        <div class="stat-icon-wrapper bg-warning-subtle text-warning">
+          <i class="bi bi-cpu-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Latest Prediction Banner if Available -->
+{% if summary.latest_prediction %}
+<div class="card border-0 shadow-sm mb-4 rounded-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
+  <div class="card-body p-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-teal" style="background-color: #0d9488;">LATEST AI PREDICTION</span>
+          <span class="text-light small">Generated: {{ summary.latest_prediction.generated_at }}</span>
+        </div>
+        <h4 class="fw-bold mb-1">
+          {{ summary.latest_prediction.state }} State &bull; Target: {{ summary.latest_prediction.prediction_year }}-{{ "%02d"|format(summary.latest_prediction.prediction_month) }}
+        </h4>
+        <p class="text-light mb-0 small opacity-75">
+          Model: {{ summary.latest_prediction.model_name }} &bull; Next-month epidemiological case forecast
+        </p>
+      </div>
+
+      <div class="d-flex align-items-center gap-4">
+        <div class="text-lg-end">
+          <div class="small text-uppercase text-light opacity-75">Forecasted Cases</div>
+          <div class="display-6 fw-bold text-white">{{ "{:,.0f}".format(summary.latest_prediction.predicted_cases) }}</div>
+        </div>
+        <div>
+          {% if summary.latest_prediction.risk_level == 'LOW RISK' %}
+            <span class="risk-badge risk-badge-low fs-6"><i class="bi bi-shield-check"></i> LOW RISK</span>
+          {% elif summary.latest_prediction.risk_level == 'MODERATE RISK' %}
+            <span class="risk-badge risk-badge-mod fs-6"><i class="bi bi-shield-exclamation"></i> MODERATE RISK</span>
+          {% else %}
+            <span class="risk-badge risk-badge-high fs-6"><i class="bi bi-shield-slash-fill"></i> HIGH RISK</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Primary Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-8">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-graph-up me-2 text-teal" style="color: #0d9488;"></i>Monthly Malaria Cases Trend (2015 – 2024)</h5>
+        <span class="badge bg-light text-muted border">Monthly Historical Observations</span>
+      </div>
+      <div style="height: 320px; position: relative;">
+        <canvas id="monthlyTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-pie-chart-fill me-2 text-teal" style="color: #0d9488;"></i>Cases by State</h5>
+        <span class="badge bg-light text-muted border">Proportional Burden</span>
+      </div>
+      <div style="height: 320px; position: relative;" class="d-flex align-items-center justify-content-center">
+        <canvas id="stateDistributionChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-6">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-bar-chart-fill me-2 text-teal" style="color: #0d9488;"></i>Yearly Malaria Cases by State</h5>
+        <span class="badge bg-light text-muted border">Annual Cumulative</span>
+      </div>
+      <div style="height: 280px; position: relative;">
+        <canvas id="yearlyTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-clock-history me-2 text-teal" style="color: #0d9488;"></i>Recent Outbreak Predictions</h5>
+        <a href="{{ url_for('history.index') }}" class="btn btn-sm btn-link p-0 text-decoration-none">View All &rarr;</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+          <thead class="table-light">
+            <tr>
+              <th>State</th>
+              <th>Target Period</th>
+              <th>Forecasted Cases</th>
+              <th>Risk Level</th>
+              <th>Generated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if recent_predictions %}
+              {% for p in recent_predictions %}
+                <tr>
+                  <td><strong>{{ p.state }}</strong></td>
+                  <td>{{ p.prediction_year }}-{{ "%02d"|format(p.prediction_month) }}</td>
+                  <td><strong>{{ "{:,.0f}".format(p.predicted_cases) }}</strong></td>
+                  <td>
+                    {% if p.risk_level == 'LOW RISK' %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle">Low</span>
+                    {% elif p.risk_level == 'MODERATE RISK' %}
+                      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Moderate</span>
+                    {% else %}
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle">High</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted small">{{ p.generated_at[:10] }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                  <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                  No predictions recorded yet. <a href="{{ url_for('predictions.predict') }}">Generate the first prediction</a>.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+

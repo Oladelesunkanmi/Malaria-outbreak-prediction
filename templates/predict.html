@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Predict Malaria - Malaria Outbreak Prediction System{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: #0f172a;">Next-Month Malaria Case Prediction</h3>
+    <p class="text-muted mb-0 small">Sequential machine learning forecast engine utilizing autoregressive lags and rolling moving averages.</p>
+  </div>
+  <a href="{{ url_for('history.index') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+    <i class="bi bi-clock-history"></i> Prediction History
+  </a>
+</div>
+
+<div class="row g-4">
+  <!-- Prediction Form Card -->
+  <div class="col-12 col-lg-5">
+    <div class="card border-0 shadow-sm rounded-3">
+      <div class="card-header bg-white border-bottom py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-sliders text-teal" style="color: #0d9488; font-size: 1.2rem;"></i>
+          <h6 class="fw-bold mb-0">Forecast Parameters</h6>
+        </div>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('predictions.predict') }}" id="predictionForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+          <div class="mb-3">
+            <label for="stateSelect" class="form-label fw-semibold small text-muted">TARGET SENTINEL STATE</label>
+            <select class="form-select" id="stateSelect" name="state" required>
+              {% for s in states %}
+                <option value="{{ s }}" {% if s == default_state %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text small" id="stateEligibilityText">
+              Latest recorded observation for <strong id="selectedStateLabel">{{ default_state }}</strong>: 
+              <code>{{ period_info.latest_year }}-{{ "%02d"|format(period_info.latest_month) if period_info.latest_month is not none else 'N/A' }}</code>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label for="yearInput" class="form-label fw-semibold small text-muted">PREDICTION YEAR</label>
+              <input type="number" class="form-control" id="yearInput" name="year" value="{{ period_info.next_year or '' }}" required readonly>
+            </div>
+            <div class="col-6">
+              <label for="monthInput" class="form-label fw-semibold small text-muted">PREDICTION MONTH</label>
+              <input type="number" class="form-control" id="monthInput" name="month" min="1" max="12" value="{{ period_info.next_month or '' }}" required readonly>
+            </div>
+          </div>
+
+          <div class="alert alert-info py-2 px-3 small border-0 rounded-2 mb-3 d-flex align-items-center gap-2" style="background-color: #f0fdfa; color: #0f766e;">
+            <i class="bi bi-info-circle-fill fs-5"></i>
+            <div>
+              Next eligible sequential forecast period: <strong id="nextEligibleLabel">{{ period_info.next_year }}-{{ "%02d"|format(period_info.next_month) if period_info.next_month is not none else 'N/A' }}</strong>
+            </div>
+          </div>
+
+          <div id="horizonWarningBox" class="alert alert-warning py-2 px-3 small border-0 rounded-2 mb-3 d-flex align-items-center gap-2 {% if not period_info.horizon_warning and not period_info.horizon_limit_reached %}d-none{% endif %}">
+            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+            <div id="horizonWarningText">
+              {% if period_info.horizon_limit_reached %}
+                <strong>Maximum Horizon Limit:</strong> Forecasts are capped at 3 months ahead of historical records.
+              {% elif period_info.horizon_warning %}
+                <strong>Chained Forecast Warning:</strong> This forecast is <strong>{{ period_info.horizon_months }} months ahead</strong> of historical records. Recursive accuracy decreases with horizon length. See <a href="{{ url_for('evaluation.index') }}#horizonSection" class="alert-link">horizon benchmarks</a>.
+              {% endif %}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-teal w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm" id="submitBtn" {% if period_info.horizon_limit_reached %}disabled{% endif %}>
+            <span class="spinner-border spinner-border-sm d-none" id="btnSpinner" role="status"></span>
+            <i class="bi bi-lightning-charge-fill" id="btnIcon"></i>
+            <span id="btnText">Compute Next-Month Forecast</span>
+          </button>
+        </form>
+      </div>
+      <div class="card-footer bg-light border-0 py-3 px-4 text-muted small">
+        <i class="bi bi-shield-lock me-1"></i> Sequential integrity enforced: lag and rolling parameters are constructed automatically from true records to prevent data leakage.
+      </div>
+    </div>
+  </div>
+
+  <!-- Prediction Result View -->
+  <div class="col-12 col-lg-7">
+    {% if prediction %}
+      <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-check2-circle text-success fs-5"></i>
+            <h6 class="fw-bold mb-0">Forecast Output: {{ prediction.state }} ({{ prediction.prediction_period }})</h6>
+          </div>
+          <span class="badge bg-light text-muted border">{{ prediction.model_name }}</span>
+        </div>
+        <div class="card-body p-4">
+          {% if prediction.horizon_warning %}
+            <div class="alert alert-warning py-2 px-3 small border-0 rounded-2 mb-3 d-flex align-items-center gap-2">
+              <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+              <div>
+                <strong>Chained Multi-Step Notice:</strong> This prediction is <strong>{{ prediction.horizon_months }} months ahead</strong> of recorded historical surveillance data. Forecast accuracy decreases as horizon increases. Review recursive benchmarks on the <a href="{{ url_for('evaluation.index') }}#horizonSection" class="alert-link fw-semibold">Model Evaluation</a> page.
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- Primary Outcome Display -->
+          <div class="row align-items-center g-3 mb-4 p-3 rounded-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+            <div class="col-12 col-md-7">
+              <span class="text-muted small text-uppercase fw-semibold d-block">Expected Malaria Cases</span>
+              <div class="display-5 fw-bold text-navy" style="color: #0f172a;">
+                {{ "{:,.0f}".format(prediction.predicted_cases) if prediction.predicted_cases is not none else 'N/A' }}
+              </div>
+              <small class="text-muted">Target Period: <strong>{{ prediction.prediction_period or 'N/A' }}</strong> &bull; Non-negative bounded</small>
+            </div>
+            <div class="col-12 col-md-5 text-md-end">
+              <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Statistical Risk Level</span>
+              {% if prediction.risk_level == 'LOW RISK' %}
+                <div class="risk-badge risk-badge-low fs-6 mb-1"><i class="bi bi-shield-check"></i> LOW RISK</div>
+              {% elif prediction.risk_level == 'MODERATE RISK' %}
+                <div class="risk-badge risk-badge-mod fs-6 mb-1"><i class="bi bi-shield-exclamation"></i> MODERATE RISK</div>
+              {% else %}
+                <div class="risk-badge risk-badge-high fs-6 mb-1"><i class="bi bi-shield-slash-fill"></i> HIGH RISK</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Statistical Thresholds Comparison -->
+          <h6 class="fw-bold mb-3 small text-uppercase text-muted">Baseline &amp; Threshold Benchmarks</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="p-3 bg-light rounded-3 text-center border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">SEASONAL MEAN (μ)</small>
+                <strong class="fs-5 text-dark">
+                  {{ "{:,.0f}".format(prediction.baseline_mean) if prediction.baseline_mean is not none else 'N/A' }}
+                </strong>
+                <small class="d-block text-muted" style="font-size: 0.68rem;">Historical Monthly Avg</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="p-3 bg-light rounded-3 text-center border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">HIGH-RISK THRESHOLD</small>
+                <strong class="fs-5 text-danger">
+                  {{ "{:,.0f}".format(prediction.threshold_high) if prediction.threshold_high is not none else 'N/A' }}
+                </strong>
+                <small class="d-block text-muted" style="font-size: 0.68rem;">μ + 2 Standard Devs</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="p-3 bg-light rounded-3 text-center border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">VARIANCE SPREAD (σ)</small>
+                <strong class="fs-5 text-info">
+                  {{ "{:,.0f}".format(prediction.threshold_high - prediction.baseline_mean) if (prediction.threshold_high is not none and prediction.baseline_mean is not none) else 'N/A' }}
+                </strong>
+                <small class="d-block text-muted" style="font-size: 0.68rem;">2-Sigma Margin</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="p-3 bg-light rounded-3 text-center border">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">OUTBREAK PROBABILITY</small>
+                <strong class="fs-5 {% if prediction.outbreak_probability and prediction.outbreak_probability >= 0.5 %}text-danger{% else %}text-teal{% endif %}" style="color: #0d9488;">
+                  {{ "{:.1f}%".format(prediction.outbreak_probability * 100) if prediction.outbreak_probability is not none else "N/A" }}
+                </strong>
+                <small class="d-block text-muted" style="font-size: 0.68rem;">Classifier Alert</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Explanation Box -->
+          <div class="p-3 rounded-3 mb-3 border-start border-4 border-info bg-light" style="font-size: 0.88rem;">
+            <strong>Interpretation:</strong> {{ prediction.explanation or 'Statistical epidemiological assessment generated from autoregressive parameters.' }}
+          </div>
+
+          <!-- Technical Feature Parameters Table -->
+          {% if prediction.features_used %}
+          <details class="mb-3">
+            <summary class="small fw-semibold text-teal cursor-pointer" style="cursor: pointer; color: #0d9488;">
+              <i class="bi bi-chevron-down me-1"></i> Inspect Engineered Features Input Vector
+            </summary>
+            <div class="table-responsive mt-2">
+              <table class="table table-sm table-bordered mb-0" style="font-size: 0.8rem;">
+                <thead class="table-light">
+                  <tr>
+                    <th>Feature</th>
+                    <th>Calculated Value</th>
+                    <th>Feature</th>
+                    <th>Calculated Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>lag_1</code> (Prior Month)</td>
+                    <td><strong>{{ "{:,.0f}".format(prediction.features_used.lag_1) if prediction.features_used.lag_1 is not none else 'N/A' }}</strong></td>
+                    <td><code>rolling_mean_3</code> (3-Mo Avg)</td>
+                    <td><strong>{{ "{:,.0f}".format(prediction.features_used.rolling_mean_3) if prediction.features_used.rolling_mean_3 is not none else 'N/A' }}</strong></td>
+                  </tr>
+                  <tr>
+                    <td><code>lag_2</code> (2 Months Ago)</td>
+                    <td><strong>{{ "{:,.0f}".format(prediction.features_used.lag_2) if prediction.features_used.lag_2 is not none else 'N/A' }}</strong></td>
+                    <td><code>rolling_mean_6</code> (6-Mo Avg)</td>
+                    <td><strong>{{ "{:,.0f}".format(prediction.features_used.rolling_mean_6) if prediction.features_used.rolling_mean_6 is not none else 'N/A' }}</strong></td>
+                  </tr>
+                  <tr>
+                    <td><code>lag_3</code> (3 Months Ago)</td>
+                    <td><strong>{{ "{:,.0f}".format(prediction.features_used.lag_3) if prediction.features_used.lag_3 is not none else 'N/A' }}</strong></td>
+                    <td><code>month_sin</code> (Cyclical)</td>
+                    <td><code>{{ "%.4f"|format(prediction.features_used.month_sin) if prediction.features_used.month_sin is not none else 'N/A' }}</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>lag_12</code> (1 Year Ago)</td>
+                    <td><strong>{{ "{:,.0f}".format(prediction.features_used.lag_12) if prediction.features_used.lag_12 is not none else 'N/A' }}</strong></td>
+                    <td><code>month_cos</code> (Cyclical)</td>
+                    <td><code>{{ "%.4f"|format(prediction.features_used.month_cos) if prediction.features_used.month_cos is not none else 'N/A' }}</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          {% endif %}
+
+          <!-- Disclaimer Note -->
+          <div class="epidemiological-note small">
+            <i class="bi bi-info-circle-fill me-1"></i>
+            <strong>Epidemiological Methodology &amp; Disclaimer:</strong> {{ prediction.disclaimer or 'Statistical risk estimation indicator.' }}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="card border-0 shadow-sm rounded-3 h-100 d-flex align-items-center justify-content-center p-5 text-center text-muted">
+        <i class="bi bi-cpu fs-1 text-teal mb-3 opacity-50" style="color: #0d9488;"></i>
+        <h5 class="fw-bold text-dark">Ready for Forecasting</h5>
+        <p class="small max-w-sm mb-3">
+          Select a sentinel state and request a prediction. The machine learning pipeline will retrieve the preceding 12 months of observations, extract temporal lags, and compute the seasonal epidemiological baseline.
+        </p>
+        <span class="badge bg-light text-muted border">Automatic Lag &amp; Rolling Computation</span>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/prediction.js') }}"></script>
+{% endblock %}
+

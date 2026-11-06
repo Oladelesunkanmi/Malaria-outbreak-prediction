@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Analytics - Malaria Outbreak Prediction System{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1" style="color: #0f172a;">Epidemiological Data Analytics</h3>
+    <p class="text-muted mb-0 small">Exploratory time-series dynamics, seasonal transmission periodicity, and inter-state morbidity comparisons.</p>
+  </div>
+  <a href="{{ url_for('predictions.predict') }}" class="btn btn-teal btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
+    <i class="bi bi-cpu-fill"></i> Proceed to Prediction Engine
+  </a>
+</div>
+
+<!-- Seasonal Transmission Patterns & Peaks -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-7">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h5 class="chart-title"><i class="bi bi-calendar2-range-fill me-2 text-teal" style="color: #0d9488;"></i>Seasonal Malaria Transmission Patterns</h5>
+          <small class="text-muted">10-Year Monthly Average Burden (Rainy Season vs Dry Season)</small>
+        </div>
+        <span class="badge bg-light text-dark border">Seasonality Curve</span>
+      </div>
+      <div style="height: 330px; position: relative;">
+        <canvas id="seasonalPatternChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-pie-chart-fill me-2 text-teal" style="color: #0d9488;"></i>State Case Burden Distribution</h5>
+        <span class="badge bg-light text-muted border">Cumulative Share</span>
+      </div>
+      <div style="height: 330px; position: relative;" class="d-flex align-items-center justify-content-center">
+        <canvas id="stateDistributionChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Long-term Monthly Trend -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h5 class="chart-title"><i class="bi bi-graph-up-arrow me-2 text-teal" style="color: #0d9488;"></i>Comprehensive Monthly Time Series (2015 – 2024)</h5>
+          <small class="text-muted">120 consecutive monthly data points per state (360 total observations)</small>
+        </div>
+        <span class="badge bg-light text-muted border">Continuous Trajectory</span>
+      </div>
+      <div style="height: 340px; position: relative;">
+        <canvas id="monthlyTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Yearly Breakdown and Epidemiological Insights -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-8">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h5 class="chart-title"><i class="bi bi-bar-chart-steps me-2 text-teal" style="color: #0d9488;"></i>Annual Comparative Case Influx</h5>
+        <span class="badge bg-light text-muted border">Year-over-Year Progression</span>
+      </div>
+      <div style="height: 300px; position: relative;">
+        <canvas id="yearlyTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <div class="card border-0 shadow-sm rounded-3 h-100">
+      <div class="card-header bg-white border-bottom py-3">
+        <h6 class="fw-bold mb-0"><i class="bi bi-journal-medical me-2 text-teal" style="color: #0d9488;"></i>Epidemiological Insights</h6>
+      </div>
+      <div class="card-body p-3">
+        <div class="mb-3 p-3 bg-light rounded-3" style="font-size: 0.85rem;">
+          <strong class="d-block text-navy mb-1"><i class="bi bi-cloud-rain me-1 text-primary"></i>Peak Transmission Season:</strong>
+          Historical surveillance shows a notable peak during the rainy season between <strong>June and October</strong> across all three sentinel states, closely correlating with mosquito breeding cycles.
+        </div>
+
+        <div class="mb-3 p-3 bg-light rounded-3" style="font-size: 0.85rem;">
+          <strong class="d-block text-navy mb-1"><i class="bi bi-geo-alt me-1 text-warning"></i>Regional Burden:</strong>
+          Zamfara and Kwara exhibit higher overall absolute case numbers, while Nasarawa shows pronounced seasonal spikes relative to its population baseline.
+        </div>
+
+        <div class="p-3 bg-light rounded-3" style="font-size: 0.85rem;">
+          <strong class="d-block text-navy mb-1"><i class="bi bi-cpu me-1 text-teal" style="color: #0d9488;"></i>Predictive Utility:</strong>
+          Lag features (previous month, 3-month rolling, and 12-month annual lag) capture both immediate autoregressive momentum and year-over-year seasonal seasonality.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}
+
