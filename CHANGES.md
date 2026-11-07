@@ -4,6 +4,104 @@ All enhancements, modifications, and evaluations performed on the Malaria Outbre
 
 ---
 
+### [2026-11-06] Full System Retrain & Artifact Replacement
+
+#### 1. Archive & Backup (`archive/previous_run_20261106/`)
+- Archived all previous model files (`models/*.pkl`, `models/*.json`), diagnostic visualizations (`static/images/*.png`), active database (`malaria_predict.db`), and changelog (`CHANGES.md`) into `archive/previous_run_20261106/`.
+
+#### 2. Clean Deletion of Generated Artifacts
+- Deleted generated files in `models/` and `static/images/` to eliminate stale training outputs.
+- Confirmed zero impact on raw dataset (`data/`), application codebase, or database.
+
+#### 3. Complete Pipeline Execution
+- Retrained univariate baseline models (`best_model.pkl`, `model_metrics.json`, `horizon_evaluation.json`, `seasonal_baselines.json`, `preprocessing_report.json`).
+- Retrained rainfall-enhanced models (`best_model_rainfall.pkl`, `model_metrics_rainfall.json`, `horizon_evaluation_rainfall.json`).
+- Retrained outbreak classification pipeline (`outbreak_classifier.pkl`, `outbreak_metrics.json`, `outbreak_baselines.json`).
+- Regenerated all 4 diagnostic plots (`model_comparison.png`, `actual_vs_predicted.png`, `prediction_error.png`, `outbreak_confusion_matrix.png`).
+- Re-seeded `ModelMetric` records into `malaria_predict.db`.
+
+#### 4. Audit & Verification (`RETRAIN_LOG.md`)
+- Verified that 1-month holdout MAE equals 1-month horizon evaluation MAE across all models.
+- Verified that RMSE equals $\sqrt{\text{MSE}}$ without discrepancies.
+- Verified outbreak training (258 samples) and test (66 samples) split counts.
+- Purged temporary verification predictions from `malaria_predict.db`, returning it to 0 predictions and 360 historical records.
+- All 19 tests passing (`pytest -v`). Full execution log recorded in `RETRAIN_LOG.md`.
+
+---
+
+### [2026-11-06] Removal of 3-Month Forecast Horizon Cap
+
+#### 1. Prediction Engine & Service (`ml/predict.py`, `services/prediction_service.py`)
+- Removed the 3-month forecast cap exception (`months_ahead > 3` check) in `ml/predict.py`. Chained autoregressive forecasts can now proceed sequentially beyond 3 months.
+- Retained dynamic calculation of `months_ahead` and `horizon_warning` (`horizon > 1`) so users remain informed regarding multi-step recursive uncertainty without blocking forecasts.
+- Updated `services/prediction_service.py` to keep `'can_predict': True` and `'horizon_limit_reached': False` regardless of forecast horizon.
+
+#### 2. User Interface & Dynamic Scripting (`templates/predict.html`, `static/js/prediction.js`)
+- Removed the alert banner text *"Maximum Horizon Limit: Forecasts are capped at 3 months ahead of historical records."*
+- Removed the disabled state on the submission button in `templates/predict.html` and `static/js/prediction.js`.
+- Preserved chained multi-step warnings linking to recursive evaluation benchmarks.
+
+#### 3. Test Suite (`tests/test_prediction.py`)
+- Replaced `test_predict_horizon_limit_exceeded()` with `test_predict_beyond_3_months_allowed()`, verifying that chaining forecasts into month 4 and beyond executes cleanly and sets `horizon_months == 4`.
+- All 19 tests passing (`pytest -v`).
+
+---
+
+### [2026-11-06] Comprehensive Software Verification & End-to-End Audit (SOFTWARE_CHECK.md)
+
+#### 1. Recursive Multi-Step Horizon Evaluation Verification (`ml/train.py`)
+- Verified that `models/horizon_evaluation.json` (baseline) and `models/horizon_evaluation_rainfall.json` (rainfall-enhanced) use the exact same test origins and sample counts ($N = 66$ for $h=1$, $60$ for $h=3$, $51$ for $h=6$, and $33$ for $h=12$).
+- Verified that recursive rainfall forecasts use strictly past rainfall initialized up to origin month $t$, holding rainfall flat at the last known level during future rollouts without leaking observed future ground truth.
+
+#### 2. Feature Shift & Null Check Verification (`ml/feature_engineering.py`)
+- Confirmed that all rainfall features (`rainfall_lag_1`, `rainfall_lag_2`, `rainfall_lag_3`, `rainfall_lag_12`, `rainfall_cum_3`, `rainfall_mean_3`) use pandas `.shift(k)` with $k \ge 1$.
+- Verified that dropping initial rows results in exactly 108 observations per state (324 total rows across 2016–2024) with zero missing values across all features.
+
+#### 3. Test Suite & Database Isolation
+- Verified test suite passes completely (19 passed out of 19 tests in 15.94s).
+- Confirmed that `malaria_predict.db` maintains unchanged row counts before and after test execution (360 historical records, 0 predictions, 5 model metrics).
+
+#### 4. End-to-End Audit & Security Checks
+- Tested authenticated access to all views (`/dashboard`, `/dataset`, `/analytics`, `/predict`, `/evaluation`, `/history`) – all returned HTTP 200 OK.
+- Tested sequential predictions for Kwara, Nasarawa, and Zamfara; verified 2-month and 3-month chained warning notices.
+- Confirmed `malaria_prediction_system/` does not exist, zero active `Admin123` passwords exist in code, and `config.py` raises `ValueError` when `ADMIN_PASSWORD` is missing.
+- Documented complete raw outputs in `SOFTWARE_CHECK.md`.
+
+---
+
+### [2026-11-06] Historical Climate & Rainfall Integration
+
+#### 1. Dataset & Climate Integration (`data/rainfall.csv`, `config.py`, `ml/preprocessing.py`)
+- Integrated `climate_monthly.csv` (historical NASA POWER monthly temperature, rainfall, and relative humidity data for Kwara, Nasarawa, and Zamfara, 2015–2024) into `data/rainfall.csv`.
+- Configured `RAINFALL_PATH`, `BEST_MODEL_RAINFALL_PATH`, and `METRICS_RAINFALL_PATH` in `config.py`.
+- Updated `preprocess_malaria_data()` in `ml/preprocessing.py` to perform an inner/left merge on `(State, year, month)`, standardizing precipitation to `rainfall_mm` and updating `models/preprocessing_report.json` with merge metrics (0 missing rainfall values across 360 observations).
+
+#### 2. Feature Engineering (`ml/feature_engineering.py`)
+- Created `BASE_FEATURE_COLUMNS` and `RAINFALL_FEATURE_COLUMNS` (`rainfall_lag_1`, `rainfall_lag_2`, `rainfall_lag_3`, `rainfall_lag_12`, `rainfall_cum_3`, `rainfall_mean_3`).
+- All rainfall features are strictly built from past observations prior to month $t$, eliminating data leakage and ensuring no future observed rainfall is used at inference time.
+- Updated `compute_single_row_features()` with `recent_history_rainfall` input argument.
+
+#### 3. Dual Model Pipelines & Benchmarking (`ml/train.py`)
+- Preserved baseline model pipeline (`best_model.pkl`, `models/model_metrics.json`, `models/horizon_evaluation.json`) trained on univariate autoregressive lag features.
+- Implemented `train_rainfall_enhanced_model()` producing `best_model_rainfall.pkl`, `models/model_metrics_rainfall.json`, and `models/horizon_evaluation_rainfall.json`.
+- Evaluated models side-by-side using exact chronological 86-month train / 22-month test partitions:
+  - Linear Regression (Baseline): MAE = 9,730.60 | RMSE = 19,709.93 | $R^2$ = 0.7497
+  - Linear Regression (Rainfall): MAE = 9,930.16 | RMSE = 19,791.02 | $R^2$ = 0.7476
+  - Random Forest Regressor (Baseline): MAE = 10,513.63 | RMSE = 22,488.05 | $R^2$ = 0.6741
+  - Random Forest Regressor (Rainfall): MAE = 10,349.71 | RMSE = 23,691.73 | $R^2$ = 0.6383 (MAE improved by -163.92 cases)
+  - Multi-step recursive forecasts: at longer horizons ($h = 3, 6, 12$), rainfall features substantially reduced cumulative error drift for Linear Regression (3-month MAE: 20,626.35 vs. 21,995.95 baseline; 6-month MAE: 22,855.98 vs. 25,528.68 baseline; 12-month MAE: 26,651.20 vs. 28,496.43 baseline).
+
+#### 4. Prediction Service & UI (`ml/predict.py`, `templates/predict.html`)
+- Added `get_state_chronological_rainfall_series()` in `ml/predict.py` to extract past rainfall values dynamically.
+- `predict_next_month()` automatically utilizes the rainfall-enhanced model pipeline while preserving full backwards compatibility if only baseline models exist.
+- Updated `templates/predict.html` to display `rainfall_lag_1` and `rainfall_cum_3` in the technical feature inspection table.
+
+#### 5. Verification & Test Suite (`tests/test_evaluation_baselines.py`)
+- Updated test suite to verify baseline isolation and rainfall-extended features.
+- All 19 tests passing (`pytest -v`).
+
+---
+
 ### [2026-11-06] Academic & Methodological Improvements
 
 #### 1. `ml/train.py`

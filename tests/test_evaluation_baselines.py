@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from config import Config
 from ml.preprocessing import preprocess_malaria_data
-from ml.feature_engineering import generate_features, FEATURE_COLUMNS, TARGET_COLUMN
+from ml.feature_engineering import generate_features, FEATURE_COLUMNS, BASE_FEATURE_COLUMNS, TARGET_COLUMN
 from ml.train import (
     validate_risk_tiers_on_test,
     run_timeseries_cv,
@@ -90,12 +90,12 @@ def test_risk_tier_validation_metrics(dataset_and_split):
     preprocessor = ColumnTransformer(
         transformers=[
             ('cat', OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore'), ['State']),
-            ('num', 'passthrough', [c for c in FEATURE_COLUMNS if c != 'State'])
+            ('num', 'passthrough', [c for c in BASE_FEATURE_COLUMNS if c != 'State'])
         ]
     )
     pipe = Pipeline([('preprocessor', preprocessor), ('regressor', LinearRegression())])
-    pipe.fit(train_df[FEATURE_COLUMNS], train_df[TARGET_COLUMN])
-    y_pred = np.maximum(0, pipe.predict(test_df[FEATURE_COLUMNS]))
+    pipe.fit(train_df[BASE_FEATURE_COLUMNS], train_df[TARGET_COLUMN])
+    y_pred = np.maximum(0, pipe.predict(test_df[BASE_FEATURE_COLUMNS]))
     
     tier_val = validate_risk_tiers_on_test(test_df, y_pred, baselines)
     

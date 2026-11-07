@@ -7,6 +7,7 @@ from config import Config
 def preprocess_malaria_data(csv_path=None, save_report=True):
     """
     Load and clean the raw malaria dataset.
+    Optionally merges climate / rainfall data when data/rainfall.csv exists.
     
     Returns:
         cleaned_df (pd.DataFrame): Cleaned and validated dataframe
@@ -16,26 +17,72 @@ def preprocess_malaria_data(csv_path=None, save_report=True):
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"Dataset file not found at: {csv_path}")
 
-    # 1. Load the CSV
+    # 1. Load the malaria CSV
     raw_df = pd.read_csv(csv_path)
     original_records = len(raw_df)
     original_cols_count = len(raw_df.columns)
-    
+
     # 2. Normalize column names (strip leading/trailing whitespace)
     raw_df.columns = raw_df.columns.str.strip()
-    
+
+    # ------------------------------------------------------------
+    # Climate / Rainfall Merge (optional – only if file exists)
+    # ------------------------------------------------------------
+    rainfall_path = Config.RAINFALL_PATH
+    rainfall_merged = False
+    rainfall_missing_count = 0
+
+    if os.path.exists(rainfall_path):
+        rain_df = pd.read_csv(rainfall_path)
+        rain_df.columns = rain_df.columns.str.strip()
+
+        # Detect the rainfall column name
+        if 'rain_mm' in rain_df.columns:
+            rain_col = 'rain_mm'
+        elif 'rainfall_mm' in rain_df.columns:
+            rain_col = 'rainfall_mm'
+        else:
+            numeric_cols = [c for c in rain_df.columns if pd.api.types.is_numeric_dtype(rain_df[c])]
+            rain_col = numeric_cols[-1] if numeric_cols else None
+
+        if rain_col:
+            # Build a clean climate subset with the required join keys
+            keep_cols = ['State', 'year', 'month', rain_col]
+            extra_climate_cols = []
+            for col_name in ['temp_c', 'humidity_pct']:
+                if col_name in rain_df.columns:
+                    keep_cols.append(col_name)
+                    extra_climate_cols.append(col_name)
+
+            rain_subset = rain_df[keep_cols].copy()
+            rain_subset = rain_subset.rename(columns={rain_col: 'rainfall_mm'})
+
+            # Left-merge so we never lose malaria rows
+            raw_df = pd.merge(raw_df, rain_subset, on=['State', 'year', 'month'], how='left')
+            rainfall_merged = True
+            rainfall_missing_count = int(raw_df['rainfall_mm'].isna().sum())
+        else:
+            raw_df['rainfall_mm'] = np.nan
+    else:
+        raw_df['rainfall_mm'] = np.nan
+
     # 3. Identify and drop completely empty columns
     empty_cols = [c for c in raw_df.columns if raw_df[c].isna().all()]
     df = raw_df.drop(columns=empty_cols).copy()
-    
-    # 4. Remove irrelevant unnamed columns or sparse intervention columns (< 5% non-null)
+
+    # 4. Remove irrelevant unnamed columns or sparse intervention columns (< 10% non-null)
+    protected_cols = {'State', 'cases', 'year', 'month', 'Population',
+                      'x', 'y', 'state_id', 'time', 'rainfall_mm',
+                      'temp_c', 'humidity_pct'}
     unnamed_cols = [c for c in df.columns if c.startswith('Unnamed')]
-    sparse_cols = [c for c in df.columns if df[c].notna().sum() < (0.1 * len(df)) and c not in ['State', 'cases', 'year', 'month', 'Population', 'x', 'y', 'state_id', 'time']]
+    sparse_cols = [c for c in df.columns
+                   if df[c].notna().sum() < (0.1 * len(df))
+                   and c not in protected_cols]
     cols_to_drop = list(set(unnamed_cols + sparse_cols))
     df = df.drop(columns=cols_to_drop)
-    
+
     removed_cols_count = original_cols_count - len(df.columns)
-    
+
     # 5. Check duplicate records
     duplicates_count = int(df.duplicated(subset=['State', 'year', 'month']).sum())
     if duplicates_count > 0:
@@ -51,11 +98,11 @@ def preprocess_malaria_data(csv_path=None, save_report=True):
     df['month'] = pd.to_numeric(df['month'], errors='coerce')
     df['cases'] = pd.to_numeric(df['cases'], errors='coerce')
     df['Population'] = pd.to_numeric(df['Population'], errors='coerce')
-    
+
     # Check for missing values in required columns
     missing_values_count = int(df[required_cols].isna().sum().sum())
     df = df.dropna(subset=required_cols).copy()
-    
+
     df['year'] = df['year'].astype(int)
     df['month'] = df['month'].astype(int)
     df['cases'] = df['cases'].astype(int)
@@ -78,7 +125,7 @@ def preprocess_malaria_data(csv_path=None, save_report=True):
     states_covered = sorted(df['State'].unique().tolist())
     min_date = df['date'].min().strftime('%Y-%m')
     max_date = df['date'].max().strftime('%Y-%m')
-    
+
     # Generate preprocessing report
     report = {
         "original_records": original_records,
@@ -92,7 +139,10 @@ def preprocess_malaria_data(csv_path=None, save_report=True):
         "invalid_cases_removed": invalid_cases_count,
         "states_covered": states_covered,
         "date_range": f"{min_date} to {max_date}",
-        "records_per_state": df['State'].value_counts().to_dict()
+        "records_per_state": df['State'].value_counts().to_dict(),
+        "rainfall_merged": bool(rainfall_merged),
+        "rainfall_missing_count": int(rainfall_missing_count),
+        "rainfall_column_present": bool('rainfall_mm' in df.columns and bool(df['rainfall_mm'].notna().any()))
     }
 
     if save_report:
@@ -107,4 +157,3 @@ if __name__ == "__main__":
     df, report = preprocess_malaria_data()
     print("Preprocessing completed successfully.")
     print(json.dumps(report, indent=2))
-

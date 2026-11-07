@@ -14,9 +14,12 @@ class Config:
     
     DATA_DIR = os.path.join(BASE_DIR, 'data')
     DATASET_PATH = os.path.join(DATA_DIR, 'Wavelets_data for Time series_malaria.csv')
+    RAINFALL_PATH = os.path.join(DATA_DIR, 'rainfall.csv')
     MODELS_DIR = os.path.join(BASE_DIR, 'models')
     BEST_MODEL_PATH = os.path.join(MODELS_DIR, 'best_model.pkl')
+    BEST_MODEL_RAINFALL_PATH = os.path.join(MODELS_DIR, 'best_model_rainfall.pkl')
     METRICS_PATH = os.path.join(MODELS_DIR, 'model_metrics.json')
+    METRICS_RAINFALL_PATH = os.path.join(MODELS_DIR, 'model_metrics_rainfall.json')
     REPORT_PATH = os.path.join(MODELS_DIR, 'preprocessing_report.json')
     UPLOAD_FOLDER = os.path.join(DATA_DIR, 'uploads')
     STATIC_IMAGES_DIR = os.path.join(BASE_DIR, 'static', 'images')
@@ -31,4 +34,3 @@ class Config:
             "CRITICAL SECURITY CONFIGURATION ERROR: The 'ADMIN_PASSWORD' environment variable is not set. "
             "Please configure ADMIN_PASSWORD in your .env file or environment variables before launching the application."
         )
-

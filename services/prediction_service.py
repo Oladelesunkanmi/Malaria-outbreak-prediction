@@ -16,7 +16,7 @@ class PredictionService:
         hist_mo = latest_hist.month if latest_hist else latest_mo
         
         horizon = (next_yr - hist_yr) * 12 + (next_mo - hist_mo) if (next_yr and hist_yr) else 1
-        can_predict = horizon <= 3
+        can_predict = True
         horizon_warning = horizon > 1
         
         return {
@@ -31,7 +31,7 @@ class PredictionService:
             'horizon_months': horizon,
             'horizon_warning': horizon_warning,
             'can_predict': can_predict,
-            'horizon_limit_reached': not can_predict
+            'horizon_limit_reached': False
         }
 
     @staticmethod

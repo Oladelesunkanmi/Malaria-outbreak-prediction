@@ -1,0 +1,290 @@
+{
+    "Kwara_1": {
+        "state": "Kwara",
+        "month": 1,
+        "count": 8,
+        "mean": 15733.88,
+        "std": 8332.54,
+        "threshold_high": 32398.95
+    },
+    "Kwara_2": {
+        "state": "Kwara",
+        "month": 2,
+        "count": 8,
+        "mean": 17035.88,
+        "std": 6373.17,
+        "threshold_high": 29782.22
+    },
+    "Kwara_3": {
+        "state": "Kwara",
+        "month": 3,
+        "count": 7,
+        "mean": 16065.29,
+        "std": 5863.74,
+        "threshold_high": 27792.77
+    },
+    "Kwara_4": {
+        "state": "Kwara",
+        "month": 4,
+        "count": 7,
+        "mean": 17294.29,
+        "std": 5436.75,
+        "threshold_high": 28167.78
+    },
+    "Kwara_5": {
+        "state": "Kwara",
+        "month": 5,
+        "count": 7,
+        "mean": 17745.43,
+        "std": 7403.52,
+        "threshold_high": 32552.47
+    },
+    "Kwara_6": {
+        "state": "Kwara",
+        "month": 6,
+        "count": 7,
+        "mean": 22540.71,
+        "std": 6538.13,
+        "threshold_high": 35616.97
+    },
+    "Kwara_7": {
+        "state": "Kwara",
+        "month": 7,
+        "count": 7,
+        "mean": 23994.14,
+        "std": 7458.0,
+        "threshold_high": 38910.14
+    },
+    "Kwara_8": {
+        "state": "Kwara",
+        "month": 8,
+        "count": 7,
+        "mean": 23671.86,
+        "std": 7146.91,
+        "threshold_high": 37965.68
+    },
+    "Kwara_9": {
+        "state": "Kwara",
+        "month": 9,
+        "count": 7,
+        "mean": 20008.57,
+        "std": 6008.44,
+        "threshold_high": 32025.45
+    },
+    "Kwara_10": {
+        "state": "Kwara",
+        "month": 10,
+        "count": 7,
+        "mean": 22004.29,
+        "std": 6792.96,
+        "threshold_high": 35590.21
+    },
+    "Kwara_11": {
+        "state": "Kwara",
+        "month": 11,
+        "count": 7,
+        "mean": 21326.29,
+        "std": 7326.5,
+        "threshold_high": 35979.29
+    },
+    "Kwara_12": {
+        "state": "Kwara",
+        "month": 12,
+        "count": 7,
+        "mean": 21842.71,
+        "std": 6975.23,
+        "threshold_high": 35793.17
+    },
+    "Nasarawa_1": {
+        "state": "Nasarawa",
+        "month": 1,
+        "count": 8,
+        "mean": 35442.25,
+        "std": 11221.18,
+        "threshold_high": 57884.61
+    },
+    "Nasarawa_2": {
+        "state": "Nasarawa",
+        "month": 2,
+        "count": 8,
+        "mean": 32778.62,
+        "std": 12242.38,
+        "threshold_high": 57263.39
+    },
+    "Nasarawa_3": {
+        "state": "Nasarawa",
+        "month": 3,
+        "count": 7,
+        "mean": 31332.0,
+        "std": 8909.46,
+        "threshold_high": 49150.93
+    },
+    "Nasarawa_4": {
+        "state": "Nasarawa",
+        "month": 4,
+        "count": 7,
+        "mean": 28979.0,
+        "std": 9204.27,
+        "threshold_high": 47387.54
+    },
+    "Nasarawa_5": {
+        "state": "Nasarawa",
+        "month": 5,
+        "count": 7,
+        "mean": 32660.86,
+        "std": 16428.47,
+        "threshold_high": 65517.79
+    },
+    "Nasarawa_6": {
+        "state": "Nasarawa",
+        "month": 6,
+        "count": 7,
+        "mean": 45718.0,
+        "std": 14671.15,
+        "threshold_high": 75060.3
+    },
+    "Nasarawa_7": {
+        "state": "Nasarawa",
+        "month": 7,
+        "count": 7,
+        "mean": 53141.86,
+        "std": 16836.46,
+        "threshold_high": 86814.79
+    },
+    "Nasarawa_8": {
+        "state": "Nasarawa",
+        "month": 8,
+        "count": 7,
+        "mean": 61086.29,
+        "std": 18837.96,
+        "threshold_high": 98762.2
+    },
+    "Nasarawa_9": {
+        "state": "Nasarawa",
+        "month": 9,
+        "count": 7,
+        "mean": 55475.14,
+        "std": 10065.71,
+        "threshold_high": 75606.56
+    },
+    "Nasarawa_10": {
+        "state": "Nasarawa",
+        "month": 10,
+        "count": 7,
+        "mean": 60441.14,
+        "std": 5787.92,
+        "threshold_high": 72016.98
+    },
+    "Nasarawa_11": {
+        "state": "Nasarawa",
+        "month": 11,
+        "count": 7,
+        "mean": 50377.29,
+        "std": 6535.79,
+        "threshold_high": 63448.87
+    },
+    "Nasarawa_12": {
+        "state": "Nasarawa",
+        "month": 12,
+        "count": 7,
+        "mean": 45291.43,
+        "std": 9013.33,
+        "threshold_high": 63318.08
+    },
+    "Zamfara_1": {
+        "state": "Zamfara",
+        "month": 1,
+        "count": 8,
+        "mean": 50707.38,
+        "std": 24606.94,
+        "threshold_high": 99921.26
+    },
+    "Zamfara_2": {
+        "state": "Zamfara",
+        "month": 2,
+        "count": 8,
+        "mean": 53208.12,
+        "std": 26822.95,
+        "threshold_high": 106854.02
+    },
+    "Zamfara_3": {
+        "state": "Zamfara",
+        "month": 3,
+        "count": 7,
+        "mean": 49052.14,
+        "std": 20788.88,
+        "threshold_high": 90629.91
+    },
+    "Zamfara_4": {
+        "state": "Zamfara",
+        "month": 4,
+        "count": 7,
+        "mean": 53421.86,
+        "std": 31486.66,
+        "threshold_high": 116395.18
+    },
+    "Zamfara_5": {
+        "state": "Zamfara",
+        "month": 5,
+        "count": 7,
+        "mean": 45565.29,
+        "std": 24475.32,
+        "threshold_high": 94515.92
+    },
+    "Zamfara_6": {
+        "state": "Zamfara",
+        "month": 6,
+        "count": 7,
+        "mean": 54756.57,
+        "std": 26299.72,
+        "threshold_high": 107356.01
+    },
+    "Zamfara_7": {
+        "state": "Zamfara",
+        "month": 7,
+        "count": 7,
+        "mean": 69440.71,
+        "std": 23995.36,
+        "threshold_high": 117431.43
+    },
+    "Zamfara_8": {
+        "state": "Zamfara",
+        "month": 8,
+        "count": 7,
+        "mean": 81501.0,
+        "std": 32362.8,
+        "threshold_high": 146226.6
+    },
+    "Zamfara_9": {
+        "state": "Zamfara",
+        "month": 9,
+        "count": 7,
+        "mean": 69975.0,
+        "std": 33317.31,
+        "threshold_high": 136609.61
+    },
+    "Zamfara_10": {
+        "state": "Zamfara",
+        "month": 10,
+        "count": 7,
+        "mean": 77964.57,
+        "std": 30622.62,
+        "threshold_high": 139209.82
+    },
+    "Zamfara_11": {
+        "state": "Zamfara",
+        "month": 11,
+        "count": 7,
+        "mean": 67287.14,
+        "std": 25123.46,
+        "threshold_high": 117534.07
+    },
+    "Zamfara_12": {
+        "state": "Zamfara",
+        "month": 12,
+        "count": 7,
+        "mean": 63061.0,
+        "std": 28425.78,
+        "threshold_high": 119912.55
+    }
+}

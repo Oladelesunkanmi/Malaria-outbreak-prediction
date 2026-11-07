@@ -47,18 +47,20 @@ def test_predict_skip_month_raises_error():
     with pytest.raises(ValueError, match="Sequential prediction required"):
         predict_next_month('Kwara', skip_yr, next_mo, save_to_db=False)
 
-def test_predict_horizon_limit_exceeded():
-    # Chaining up to 3 months is permitted, attempting a 4th month ahead of historical data must raise ValueError
+def test_predict_beyond_3_months_allowed():
+    # Verify that multi-step chained forecasting continues smoothly beyond 3 months
     latest_yr, latest_mo, next_yr, next_mo = get_latest_recorded_period('Nasarawa')
-    # Save 3 consecutive months in test database:
+    # Save 4 consecutive months in test database:
     p1 = predict_next_month('Nasarawa', next_yr, next_mo, save_to_db=True)
     ly, lm, ny, nm = get_latest_recorded_period('Nasarawa')
     p2 = predict_next_month('Nasarawa', ny, nm, save_to_db=True)
     ly, lm, ny, nm = get_latest_recorded_period('Nasarawa')
     p3 = predict_next_month('Nasarawa', ny, nm, save_to_db=True)
-    
-    # 4th month attempt must fail due to horizon > 3 limit
     ly, lm, ny, nm = get_latest_recorded_period('Nasarawa')
-    with pytest.raises(ValueError, match="horizon limit exceeded"):
-        predict_next_month('Nasarawa', ny, nm, save_to_db=False)
+    
+    # 4th month chained forecast must succeed and report horizon_months == 4
+    p4 = predict_next_month('Nasarawa', ny, nm, save_to_db=True)
+    assert p4['predicted_cases'] >= 0
+    assert p4['horizon_months'] == 4
+    assert p4['horizon_warning'] is True
 

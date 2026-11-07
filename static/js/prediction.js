@@ -34,18 +34,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const horizonWarningBox = document.getElementById('horizonWarningBox');
             const horizonWarningText = document.getElementById('horizonWarningText');
             if (horizonWarningBox && horizonWarningText) {
-              if (data.horizon_limit_reached) {
-                horizonWarningBox.classList.remove('d-none');
-                horizonWarningText.innerHTML = `<strong>Maximum Horizon Limit:</strong> Forecasts are capped at 3 months ahead of historical surveillance records.`;
-                if (submitBtn) submitBtn.disabled = true;
-              } else if (data.horizon_warning) {
+              if (data.horizon_warning) {
                 horizonWarningBox.classList.remove('d-none');
                 horizonWarningText.innerHTML = `<strong>Chained Forecast Warning:</strong> This forecast is <strong>${data.horizon_months} months ahead</strong> of historical records. Recursive accuracy decreases with horizon length. See <a href="/evaluation#horizonSection" class="alert-link">horizon benchmarks</a>.`;
-                if (submitBtn) submitBtn.disabled = false;
               } else {
                 horizonWarningBox.classList.add('d-none');
-                if (submitBtn) submitBtn.disabled = false;
               }
+              if (submitBtn) submitBtn.disabled = false;
             }
           }
         })

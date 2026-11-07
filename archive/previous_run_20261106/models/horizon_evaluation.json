@@ -1,0 +1,32 @@
+{
+    "Linear Regression": {
+        "1_month_mae": 9730.6,
+        "3_month_mae": 21995.95,
+        "6_month_mae": 25528.68,
+        "12_month_mae": 28496.43
+    },
+    "Random Forest Regressor": {
+        "1_month_mae": 10513.63,
+        "3_month_mae": 15747.05,
+        "6_month_mae": 16892.7,
+        "12_month_mae": 21677.13
+    },
+    "Decision Tree Regressor": {
+        "1_month_mae": 11647.28,
+        "3_month_mae": 17012.49,
+        "6_month_mae": 18311.98,
+        "12_month_mae": 16997.39
+    },
+    "Baseline: Last Month": {
+        "1_month_mae": 9623.08,
+        "3_month_mae": 23316.95,
+        "6_month_mae": 26355.51,
+        "12_month_mae": 23228.85
+    },
+    "Baseline: Same Month Last Year": {
+        "1_month_mae": 20337.23,
+        "3_month_mae": 20911.85,
+        "6_month_mae": 21309.69,
+        "12_month_mae": 23228.85
+    }
+}

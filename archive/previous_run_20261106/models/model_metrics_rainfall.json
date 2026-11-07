@@ -1,0 +1,270 @@
+{
+    "trained_at": "2026-11-06 20:18:13",
+    "model_variant": "rainfall_enhanced",
+    "best_model": "Linear Regression",
+    "metrics": {
+        "Linear Regression": {
+            "mae": 9930.16,
+            "mse": 391684561.51,
+            "rmse": 19791.02,
+            "r2": 0.7476,
+            "model_type": "Machine Learning (Rainfall)"
+        },
+        "Random Forest Regressor": {
+            "mae": 10349.71,
+            "mse": 561297842.77,
+            "rmse": 23691.73,
+            "r2": 0.6383,
+            "model_type": "Machine Learning (Rainfall)"
+        },
+        "Decision Tree Regressor": {
+            "mae": 11733.83,
+            "mse": 476614833.14,
+            "rmse": 21831.51,
+            "r2": 0.6929,
+            "model_type": "Machine Learning (Rainfall)"
+        },
+        "Baseline: Last Month": {
+            "mae": 9623.08,
+            "mse": 426327256.8,
+            "rmse": 20647.69,
+            "r2": 0.7253,
+            "model_type": "Naive Baseline"
+        },
+        "Baseline: Same Month Last Year": {
+            "mae": 20337.23,
+            "mse": 1422920248.14,
+            "rmse": 37721.62,
+            "r2": 0.083,
+            "model_type": "Naive Baseline"
+        }
+    },
+    "comparison_to_baseline": {
+        "Linear Regression": {
+            "baseline_mae": 9730.6,
+            "baseline_rmse": 19709.93,
+            "baseline_r2": 0.7497,
+            "rainfall_mae": 9930.16,
+            "rainfall_rmse": 19791.02,
+            "rainfall_r2": 0.7476,
+            "mae_change": 199.56,
+            "rmse_change": 81.09
+        },
+        "Random Forest Regressor": {
+            "baseline_mae": 10513.63,
+            "baseline_rmse": 22488.05,
+            "baseline_r2": 0.6741,
+            "rainfall_mae": 10349.71,
+            "rainfall_rmse": 23691.73,
+            "rainfall_r2": 0.6383,
+            "mae_change": -163.92,
+            "rmse_change": 1203.68
+        },
+        "Decision Tree Regressor": {
+            "baseline_mae": 11647.28,
+            "baseline_rmse": 21699.39,
+            "baseline_r2": 0.6966,
+            "rainfall_mae": 11733.83,
+            "rainfall_rmse": 21831.51,
+            "rainfall_r2": 0.6929,
+            "mae_change": 86.55,
+            "rmse_change": 132.12
+        },
+        "Baseline: Last Month": {
+            "baseline_mae": 9623.08,
+            "baseline_rmse": 20647.69,
+            "baseline_r2": 0.7253,
+            "rainfall_mae": 9623.08,
+            "rainfall_rmse": 20647.69,
+            "rainfall_r2": 0.7253,
+            "mae_change": 0.0,
+            "rmse_change": 0.0
+        },
+        "Baseline: Same Month Last Year": {
+            "baseline_mae": 20337.23,
+            "baseline_rmse": 37721.62,
+            "baseline_r2": 0.083,
+            "rainfall_mae": 20337.23,
+            "rainfall_rmse": 37721.62,
+            "rainfall_r2": 0.083,
+            "mae_change": 0.0,
+            "rmse_change": 0.0
+        }
+    },
+    "split_details": {
+        "total_observations": 360,
+        "eligible_observations": 324,
+        "train_samples": 258,
+        "test_samples": 66,
+        "states": {
+            "Kwara": {
+                "eligible_months": 108,
+                "train_months": 86,
+                "train_range": "2016-01 to 2023-02",
+                "test_months": 22,
+                "test_range": "2023-03 to 2024-12"
+            },
+            "Nasarawa": {
+                "eligible_months": 108,
+                "train_months": 86,
+                "train_range": "2016-01 to 2023-02",
+                "test_months": 22,
+                "test_range": "2023-03 to 2024-12"
+            },
+            "Zamfara": {
+                "eligible_months": 108,
+                "train_months": 86,
+                "train_range": "2016-01 to 2023-02",
+                "test_months": 22,
+                "test_range": "2023-03 to 2024-12"
+            }
+        }
+    },
+    "timeseries_cv": {
+        "Linear Regression": {
+            "mean_mae": 8576.82,
+            "std_mae": 3909.54,
+            "folds_evaluated": 10,
+            "fold_maes": [
+                7068.4,
+                7629.69,
+                3649.97,
+                9594.25,
+                6729.89,
+                6840.89,
+                6192.0,
+                19088.99,
+                9276.22,
+                9697.94
+            ]
+        },
+        "Random Forest Regressor": {
+            "mean_mae": 8780.57,
+            "std_mae": 5543.93,
+            "folds_evaluated": 10,
+            "fold_maes": [
+                6870.28,
+                5063.9,
+                3571.37,
+                7641.68,
+                7417.82,
+                13670.08,
+                8921.33,
+                23201.84,
+                3601.17,
+                7846.26
+            ]
+        },
+        "Decision Tree Regressor": {
+            "mean_mae": 10159.05,
+            "std_mae": 6150.42,
+            "folds_evaluated": 10,
+            "fold_maes": [
+                9610.76,
+                5660.02,
+                5042.33,
+                9228.29,
+                6921.21,
+                16512.46,
+                11165.88,
+                25514.33,
+                3979.78,
+                7955.41
+            ]
+        },
+        "Baseline: Last Month": {
+            "mean_mae": 8038.98,
+            "std_mae": 3953.93,
+            "folds_evaluated": 10,
+            "fold_maes": [
+                6949.89,
+                7659.5,
+                3927.56,
+                8287.44,
+                8626.0,
+                7433.22,
+                6219.72,
+                18905.11,
+                4056.0,
+                8325.33
+            ]
+        },
+        "Baseline: Same Month Last Year": {
+            "mean_mae": 16167.44,
+            "std_mae": 7040.51,
+            "folds_evaluated": 10,
+            "fold_maes": [
+                8193.17,
+                14122.56,
+                6809.94,
+                12999.17,
+                23688.67,
+                18730.0,
+                11646.22,
+                20293.0,
+                14020.61,
+                31171.11
+            ]
+        }
+    },
+    "horizon_evaluation": {
+        "Linear Regression": {
+            "1_month_mae": 9930.16,
+            "3_month_mae": 20626.35,
+            "6_month_mae": 22855.98,
+            "12_month_mae": 26651.2
+        },
+        "Random Forest Regressor": {
+            "1_month_mae": 10349.71,
+            "3_month_mae": 15193.72,
+            "6_month_mae": 17347.52,
+            "12_month_mae": 21925.6
+        },
+        "Decision Tree Regressor": {
+            "1_month_mae": 11733.83,
+            "3_month_mae": 16413.09,
+            "6_month_mae": 17569.04,
+            "12_month_mae": 20805.17
+        },
+        "Baseline: Last Month": {
+            "1_month_mae": 9623.08,
+            "3_month_mae": 23316.95,
+            "6_month_mae": 26355.51,
+            "12_month_mae": 23228.85
+        },
+        "Baseline: Same Month Last Year": {
+            "1_month_mae": 20337.23,
+            "3_month_mae": 20911.85,
+            "6_month_mae": 21309.69,
+            "12_month_mae": 23228.85
+        }
+    },
+    "feature_columns": [
+        "State",
+        "year",
+        "month",
+        "Population",
+        "month_sin",
+        "month_cos",
+        "lag_1",
+        "lag_2",
+        "lag_3",
+        "lag_12",
+        "rolling_mean_3",
+        "rolling_mean_6",
+        "rainfall_lag_1",
+        "rainfall_lag_2",
+        "rainfall_lag_3",
+        "rainfall_lag_12",
+        "rainfall_cum_3",
+        "rainfall_mean_3"
+    ],
+    "rainfall_features": [
+        "rainfall_lag_1",
+        "rainfall_lag_2",
+        "rainfall_lag_3",
+        "rainfall_lag_12",
+        "rainfall_cum_3",
+        "rainfall_mean_3"
+    ]
+}

@@ -2,8 +2,8 @@
     "original_records": 360,
     "cleaned_records": 360,
     "original_columns": 41,
-    "cleaned_columns": 10,
-    "removed_columns_count": 32,
+    "cleaned_columns": 13,
+    "removed_columns_count": 29,
     "empty_columns_removed": [
         "Unnamed: 9",
         "Unnamed: 10",
@@ -47,5 +47,8 @@
         "Kwara": 120,
         "Nasarawa": 120,
         "Zamfara": 120
-    }
+    },
+    "rainfall_merged": true,
+    "rainfall_missing_count": 0,
+    "rainfall_column_present": true
 }

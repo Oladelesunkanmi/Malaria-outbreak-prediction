@@ -58,18 +58,16 @@
             </div>
           </div>
 
-          <div id="horizonWarningBox" class="alert alert-warning py-2 px-3 small border-0 rounded-2 mb-3 d-flex align-items-center gap-2 {% if not period_info.horizon_warning and not period_info.horizon_limit_reached %}d-none{% endif %}">
+          <div id="horizonWarningBox" class="alert alert-warning py-2 px-3 small border-0 rounded-2 mb-3 d-flex align-items-center gap-2 {% if not period_info.horizon_warning %}d-none{% endif %}">
             <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
             <div id="horizonWarningText">
-              {% if period_info.horizon_limit_reached %}
-                <strong>Maximum Horizon Limit:</strong> Forecasts are capped at 3 months ahead of historical records.
-              {% elif period_info.horizon_warning %}
+              {% if period_info.horizon_warning %}
                 <strong>Chained Forecast Warning:</strong> This forecast is <strong>{{ period_info.horizon_months }} months ahead</strong> of historical records. Recursive accuracy decreases with horizon length. See <a href="{{ url_for('evaluation.index') }}#horizonSection" class="alert-link">horizon benchmarks</a>.
               {% endif %}
             </div>
           </div>
 
-          <button type="submit" class="btn btn-teal w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm" id="submitBtn" {% if period_info.horizon_limit_reached %}disabled{% endif %}>
+          <button type="submit" class="btn btn-teal w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-sm" id="submitBtn">
             <span class="spinner-border spinner-border-sm d-none" id="btnSpinner" role="status"></span>
             <i class="bi bi-lightning-charge-fill" id="btnIcon"></i>
             <span id="btnText">Compute Next-Month Forecast</span>
@@ -211,6 +209,14 @@
                     <td><code>month_cos</code> (Cyclical)</td>
                     <td><code>{{ "%.4f"|format(prediction.features_used.month_cos) if prediction.features_used.month_cos is not none else 'N/A' }}</code></td>
                   </tr>
+                  {% if prediction.rainfall_lag_1 is not none %}
+                  <tr class="table-info">
+                    <td><code>rainfall_lag_1</code> (Prior Month Rain)</td>
+                    <td><strong>{{ "%.2f mm"|format(prediction.rainfall_lag_1) }}</strong></td>
+                    <td><code>rainfall_cum_3</code> (3-Mo Cumulative Rain)</td>
+                    <td><strong>{{ "%.2f mm"|format(prediction.rainfall_cum_3) if prediction.rainfall_cum_3 is not none else 'N/A' }}</strong></td>
+                  </tr>
+                  {% endif %}
                 </tbody>
               </table>
             </div>
